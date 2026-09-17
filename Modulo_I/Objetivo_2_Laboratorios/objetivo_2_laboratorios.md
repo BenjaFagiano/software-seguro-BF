@@ -24,3 +24,8 @@
       - /api/appointments/13
   
   - Ventas
+    Primero en la url pruebo con /ventas
+    Agrego el ?id=
+    Al obtener el resultado "Forbidden" encuentro que son las ventas de Fernando.
+    Con un script de python se cuentan la cantidad de ventas y obtengo la cantidad de ventas
+    Luego creo el archivo MD5

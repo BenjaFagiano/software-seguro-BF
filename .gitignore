@@ -6,4 +6,7 @@
 .env
 .env.local
 .env.*.local
-.venv
+
+# Virtual environments
+env/
+Modulo_I/venv/
