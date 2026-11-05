@@ -1,0 +1,38 @@
+1. MercadoPago
+https://www.mercadopago.com.ar/login/
+
+HttpOnly: False
+Secure: True
+SameSite: None
+
+2. GitHub
+https://github.com/login
+
+HttpOnly: True
+Secure: True
+SameSite: Lax
+
+3. MakerWorld
+https://makerworld.com/
+
+
+HttpOnly: False
+Secure: False
+SameSite: Strict
+
+
+Qué protege exactamente la bandera HttpOnly
+La bandera HttpOnly protege las cookies de sesión de la siguiente manera:
+
+Prevención de acceso por JavaScript: Cuando una cookie tiene la bandera HttpOnly, el navegador no permite que scripts JavaScript accedan a ella a través de document.cookie.
+Mitigación de ataques XSS: En caso de que la aplicación tenga una vulnerabilidad de Cross-Site Scripting (XSS), el atacante no podrá robar las cookies de sesión mediante JavaScript, ya que estas están ocultas al código del lado del cliente.
+Limitación de daño: Aunque no previene el XSS itself, limita gravemente qué puede hacer un atacante que logre insertar código malicioso en la página.
+Nota importante: HttpOnly no impide que la cookie sea enviada al servidor ni no detiene los ataques XSS, solo impide que JavaScript lea el valor de la cookie.
+
+Riesgo si la cookie de sesión no tiene la bandera Secure
+Si una cookie de sesión no tiene activada la bandera Secure, se exponen los siguientes riesgos:
+
+Riesgo principal: Intercepción en redes no seguras
+Transmisión en texto plano: Sin la bandera Secure, la cookie puede ser enviada por el navegador tanto sobre conexiones HTTP como HTTPS.
+Ataques Man-in-the-Middle (MITM): Un atacante que esté en la misma red (ej. Wi-Fi público, red corporativa comprometida) puede interceptar el tráfico no encriptado y capturar la cookie de sesión.
+Falsificación de identidad: Con la cookie robada, el atacante puede hacerse pasar por la víctima y obtener acceso no autorizado a su cuenta.

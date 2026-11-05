@@ -1,0 +1,35 @@
+Laboratorio de PortSwigger
+https://0a41006604ce9bdc83ab0f1500bf00e0.web-security-academy.net/
+
+Descripción
+Este laboratorio utiliza un mecanismo basado en JWT para el manejo de sesiones. Utiliza una clave secreta extremadamente débil para firmar y verificar tokens. Esto puede ser fácilmente forzado bruta usando una lista de secretos comunes.
+Para resolver el laboratorio, primero fuerza bruta de la clave secreta del sitio web. Una vez que haya obtenido esto, úselo para firmar un token de sesión modificado que le da acceso al panel de administración en /admin, a continuación, eliminar el usuario carlos.
+Puede iniciar sesión en su propia cuenta utilizando las siguientes credenciales: wiener:peter
+
+Primero valido cual es el JWT que debemos realizar la fuerza bruta
+
+Se genera un Script para realizar Fuerza bruta en el JWT eyJraWQiOiIwOTg0MzBhMS1iOGI4LTQxNWEtYjZhNi0zYzczZTA5OGUyZTciLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJwb3J0c3dpZ2dlciIsImV4cCI6MTc5Mzg0Mjc4MSwic3ViIjoid2llbmVyIn0.z0WJz4TLasLJ1hSGj2ChlsVJJKi7L41VdDj96KujCEU
+haciendo las pruebas con el secret list que nos proporciona la plataforma.
+
+El resultado es secret1
+
+Con la aplicación BurpSuite se utiliza el JWT editor para obtener el JWT nuevo
+
+Se cambia en el endpoint GET /admin
+
+Una vez logueado dentro de la web como Administrador se obtiene la URL para eliminar el usuario carlos
+/admin/delete?username=carlos
+
+Se envía nuevamente la request y se obtiene
+<p>User deleted successfully!</p>
+
+
+Identifica la estructura técnica: ¿Qué algoritmo de firma se está utilizando en el Header? ¿Qué datos sensibles o roles se están enviando en el Payload en texto plano?
+Utiliza una clave secreta compartida (secret1 en este laboratorio) para generar un código de autenticación de mensaje (MAC) usando SHA-256.
+
+El payload del JWT (decodificado base64url) contenía los siguientes claims en texto plano (solo base64url encoded, no encriptado):
+sub	wiener (o carlos)	Media	Identificación de usuario
+role	admin		Privilegios de administrador expuestos
+iat	1739528043		Fecha de emisión (timestamp)
+exp	1793842781		Fecha de expiración
+iss	portswigger		Emisor del token

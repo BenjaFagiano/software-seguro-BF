@@ -1,0 +1,96 @@
+# Objetivo 4: Análisis del Ataque de Algoritmo "None" en JWT
+
+## Introducción
+
+JSON Web Tokens (JWT) son un estándar abierto (RFC 7519) para transmitir información entre partes como un objeto JSON compacto y seguro. Un componente crítico de la seguridad de JWT es el campo `alg` (algorithm) en el header, que especifica el algoritmo criográfico utilizado para firmar el token.
+
+## Vulnerabilidad del Algoritmo "None"
+
+La vulnerabilidad conocida como "None Algorithm Attack" ocurre cuando una aplicación JWT acepta tokens firmados con el algoritmo `none`, lo que indica que el token no tiene firma criográfica.
+
+### Flujo del Ataque
+
+1. **Header manipulado**: El atacante crafttea un JWT con el header siguiente:
+   ```json
+   {"alg": "none", "typ": "JWT"}
+   ```
+
+2. **Payload con credenciales falsas**: El payload contiene las reivindicaciones deseadas, incluyendo roles de administrador o permisos de cualquier usuario:
+   ```json
+   {"sub": "admin", "role": "administrator", "iat": 1609459200, "exp": 1612131200}
+   ```
+
+3. **Firma vacía**: Como el algoritmo es "none", la firma se establece como una cadena vacía o se omite completamente:
+   ```
+   sig = ""  o  sig = nil
+   ```
+
+4. **Token resultante**: El token final tiene el formato:
+   ```
+   eyJhbGciOiJub25lIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pZmF0aW9uYWxif.Q//
+   ```
+
+### ¿Por qué permite falsificar identidad sin la clave secreta?
+
+La vulnerabilidad radica en la lógica de validación defectuosa en el lado del servidor:
+
+#### 1. Omisión de verificación de firma
+Cuando el servidor recibe un token con `alg: none`, muchas implementaciones saltan la verificación de firma por completo, asumiendo que "none" significa que no hay firma que verificar. El flujo típico vulnerable es:
+
+```python
+# Pseudocódigo vulnerable
+def verify_jwt(token):
+    header = decode_header(token)
+    if header.alg == "none":
+        # Bug: simplemente valida el header y acepta el payload
+        return validate_payload(token.payload)  # Sin verificar firma
+    else:
+        # Verificación normal con clave secreta
+        verify_signature(token, secret_key)
+```
+
+#### 2. Confusión en el manejo del algoritmo
+Algunas bibliotecas JWT tienen un comportamiento por defecto ambiguo:
+- Si el header dice `alg: none`, la biblioteca puede omitir la etapa de verificación de firma
+- El servidor entonces solo valida la estructura del payload (claims), no la integridad criográfica
+- Esto permite al atacante inyectar cualquier información en el payload
+
+#### 3. Confianza en el header del cliente
+El ataque explota la confianza ciega en el contenido del header JWT firmado por el cliente. En un sistema seguro, el header debe ser firmado por el servidor o generado por el cliente con la configuración correcta, pero el servidor no debe confiar ciegamente en el valor `alg` sin verificar su legitimidad.
+
+### Consecuencias
+
+- **Falsificación de cualquier identidad**: El atacante puede hacerse pasar por cualquier usuario, incluyendo administradores, root o servicios privilegiados
+- **Escalada de privilegios**: Al modificar el campo `role` en el payload a "admin" o "superuser"
+- **Acceso no autorizado**: A rutas protegidas, funcionalidades sensibles y datos confidenciales
+- **Compromiso completo del sistema**: Dependiendo de las autorizaciones del servicio JWT
+
+### Ejemplo de explotación
+
+Un atacante quiere acceder a un endpoint de administración:
+
+1. Crafttea token: `header.payload.sig`
+   - Header: `{"alg": "none", "typ": "JWT"}`
+   - Payload: `{"sub": "attacker", "role": "admin", "permissions": ["*"]}`
+
+2. Envía el token al servidor vulnerable
+
+3. El servidor decodifica el token, ve `alg: none`, salta la verificación de firma y acepta las credenciales del payload como verdaderas
+
+4. El atacante obtiene acceso de administrador sin conocer la clave secreta
+
+### Mitigaciones
+
+1. **Rechazar explícitamente `alg: none`**: Las implementaciones deben rechazar rotundamente tokens con algoritmo "none" en lugar de aceptarlos.
+
+2. **Algoritmos obligatorios**: Configurar el servidor para solo aceptar algoritmos de firma fuertes como `HS256`, `RS256` o `ES256`.
+
+3. **Validación estricta**: Verificar que el algoritmo especificado coincida con los algoritmos permitidos configurados en el servidor.
+
+4. **Actualizar bibliotecas**: Mantener las bibliotecas JWT actualizadas, ya que muchas han añadido protecciones contra este ataque.
+
+5. **Monitoreo y logging**: Detectar intentos de tokens con algoritmo "none" en los logs de seguridad.
+
+## Conclusión
+
+La vulnerabilidad del algoritmo "none" en JWT es un clásico ejemplo de cómo la confianza ciega en los datos del cliente y la validación inadecuada pueden llevar a graves brechas de seguridad. La aceptación de tokens sin firma criográfica permite a los atacantes evadir completamente los mecanismos de autenticación y autorización, hacerse pasar por cualquier usuario y potencialmente comprometer todo el sistema. La mitigación adecuada requiere una implementación defensiva que rechace explícitamente `alg: none` y solo acepte algoritmos de firma criográfica fuertes y verificados.
